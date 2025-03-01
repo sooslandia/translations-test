@@ -27,6 +27,7 @@ jobs:
       - name: Fetch base into pr
         if: ${{ github.event_name == 'pull_request_target' }}
         run: |
+          set -e
           cd pr
           git remote rename origin pr
           git remote add origin https://github.com/sooslandia/translations
@@ -37,6 +38,7 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: |
+          set -e
           sudo apt update
           sudo apt install gettext
           tar xzf mdpo-files/wheels.tar.gz
@@ -71,6 +73,7 @@ jobs:
       - name: Commit changes
         if: ${{ github.event_name == 'push' }}
         run: |
+          set -e
           rm -rf ./pr result.txt
           git config user.email 'contact@sooslandia.ru'
           git config user.name 'Sooslandia github action'
