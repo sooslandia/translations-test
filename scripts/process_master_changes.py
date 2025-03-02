@@ -25,13 +25,13 @@ logger.addHandler(console_handler)
 
 def process_project(project_path):
     logger.info(f"Processing project {project_path}")
-    convert_resx_files(project_path)
-    generate_pot_file(project_path)
+    convert_resx2lng(project_path)
+    convert_lng2pot(project_path)
     process_docs(project_path)
     logger.info("Project processed")
 
 
-def convert_resx_files(project_path):
+def convert_resx2lng(project_path: Path):
     logger.info("Processing resx files")
     english_lng_file = project_path / "english.lng"
     english_files = []
@@ -48,18 +48,18 @@ def convert_resx_files(project_path):
     lng = {"Culture": "en", "Language": "english"}
     for file in english_files:
         lng |= parse_resx(file)
-    lng = json.dumps(lng, indent=2, ensure_ascii=False, sort_keys=True)
-    with english_lng_file.open("w", encoding="utf-8", newline="") as f:
-        f.write(lng)
+    english_lng_file.write_text(
+        json.dumps(lng, indent=2, ensure_ascii=False, sort_keys=True),
+        "utf-8",
+    )
     logger.info("Resx files processed")
 
 
-def parse_resx(file):
+def parse_resx(file: Path):
     logger.info(f"Parsing resx file {file}")
     namespace, _ = parse_resx_filename(file.name)
     logger.info(f"File namespace is {namespace}")
-    with file.open("r", encoding="utf-8") as f:
-        root = ElementTree.fromstring(f.read())
+    root = ElementTree.fromstring(file.read_text("utf-8"))
     lng = {}
     for data in root.iterfind("data"):
         name = data.attrib["name"]
@@ -70,15 +70,14 @@ def parse_resx(file):
     return lng
 
 
-def generate_pot_file(project_path):
+def convert_lng2pot(project_path: Path):
     logger.info("Generating pot file from english lng file")
     pot_file = project_path / (project_path.name + ".pot")
     english_file = project_path / "english.lng"
     if not file_updated(english_file) and pot_file.exists():
         logger.info("File is not changed")
         return
-    with english_file.open("r") as f:
-        lng = json.load(f)
+    lng = json.loads(english_file.read_bytes())
     lng.pop("Culture")
     lng.pop("Language")
     source = []
@@ -89,8 +88,7 @@ def generate_pot_file(project_path):
     source = "\n".join(source)
     source += "\n"
     pot = generate_pot_file_from_source(source, project_path.name)
-    with pot_file.open("w", encoding="utf-8", newline="") as f:
-        f.write(pot)
+    pot_file.write_text(pot, "utf-8", newline="")
     logger.info("Pot file generated")
 
 
@@ -155,7 +153,7 @@ def process_en_docs(en_docs_path):
     logger.info("English docs processed")
 
 
-def process_docs_md_file(md_file):
+def process_docs_md_file(md_file: Path):
     logger.info(f"Processing docs md file {md_file}")
     package_name = md_file.relative_to(REPOSITORY_DIR).parts[0]
     pot_file = md_file.with_suffix(".pot")
@@ -199,14 +197,13 @@ def process_docs_md_file(md_file):
         pot += process.stdout.read()
     if process.returncode != 0:
         raise RuntimeError(f"xgettext failed with code {process.returncode}")
-    with pot_file.open("wb") as f:
-        f.write(pot)
+    pot_file.write_bytes(pot)
     logger.info("Md file processed")
 
 
 def main():
-    with (REPOSITORY_DIR / "projects.txt").open("r", encoding="utf-8") as f:
-        project_dirs = [i for i in f.read().split("\n") if i]
+    projects = (REPOSITORY_DIR / "projects.txt").read_text("utf-8")
+    project_dirs = [i for i in projects.split("\n") if i]
     for project_dir in project_dirs:
         process_project(PROJECTS_DIR / project_dir)
 

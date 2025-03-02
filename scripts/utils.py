@@ -12,12 +12,12 @@ from constants import (
 
 def _percent_to_braces(match):
     n = int(match[1])
-    return f"{{{n-1}}}"  # {0} for example
+    return f"{{{n - 1}}}"  # {0} for example
 
 
 def _braces_to_percent(match):
     n = int(match[1])
-    return f"%{n+1}"
+    return f"%{n + 1}"
 
 
 def convert_braces_to_percents(string):
@@ -54,6 +54,9 @@ def git_add(file_path):
 
 
 def parse_resx_filename(resx_filename):
+    """Returns (namespace, lang-code) tuple.
+    Lang code could be None for english files.
+    """
     match = RESX_FILE_REGEX.match(resx_filename)
     return match[1], match[2]
 
